@@ -1,0 +1,31 @@
+[package]
+authors     = ["Xavier Lau <xavier@inv.cafe>"]
+build       = "build.rs"
+description = "<DESCRIPTION>"
+edition     = "2021"
+homepage    = "https://hack.ink/<NAME>"
+license     = "GPL-3.0"
+name        = "<NAME>"
+readme      = "README.md"
+repository  = "https://github.com/hack-ink/<NAME>"
+version     = "0.1.0"
+
+[profile.ci-dev]
+incremental = false
+inherits    = "dev"
+
+[profile.ci-release]
+inherits = "release"
+lto      = true
+
+[build-dependencies]
+# crates.io
+vergen = { version = "8.3", features = ["build", "cargo", "git", "gitcl"] }
+
+[dependencies]
+# crates.io
+anyhow             = { version = "1.0" }
+clap               = { version = "4.5", features = ["derive"] }
+color-eyre         = { version = "0.6" }
+tracing            = { version = "0.1" }
+tracing-subscriber = { version = "0.3" }

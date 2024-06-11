@@ -1,0 +1,10 @@
+# System
+.DS_Store
+
+# Integrated development environment
+.fleet
+.vscode
+
+# Package manager
+## Cargo
+target
