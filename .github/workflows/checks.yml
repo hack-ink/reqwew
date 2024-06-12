@@ -6,6 +6,7 @@ on:
   pull_request:
     branches:
       - main
+  workflow_dispatch:
 
 env:
   CACHE_VERSION: 0
@@ -43,7 +44,10 @@ jobs:
           args: --workspace --all-features --all-targets --locked
       - name: Cargo fmt
         if: matrix.action == 'fmt'
-        run: cargo fmt --all -- --check
+        run: |
+          rustup toolchain install nightly
+          rustup component add rustfmt --toolchain nightly
+          cargo +nightly fmt --all -- --check
       - name: Install cargo-nextest
         if: matrix.action == 'nextest'
         uses: taiki-e/install-action@nextest
@@ -54,6 +58,6 @@ jobs:
         uses: vishnudxb/cancel-workflow@v1.2
         if: failure()
         with:
-          repo: hack-ink/<NAME>
+          repo: hack-ink/reqwew
           workflow_id: ${{ github.run_id }}
-          access_token: ${{ github.token }}
+          access_token: ${{ secrets.GITHUB_TOKEN }}

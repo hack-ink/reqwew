@@ -1,31 +1,30 @@
 [package]
 authors     = ["Xavier Lau <xavier@inv.cafe>"]
-build       = "build.rs"
-description = "<DESCRIPTION>"
+categories  = ["web-programming::http-client"]
+description = "Reqwest effortless wrapper."
 edition     = "2021"
-homepage    = "https://hack.ink/<NAME>"
+homepage    = "https://hack.ink/reqwew"
+keywords    = ["client", "http", "request", "reqwest"]
 license     = "GPL-3.0"
-name        = "<NAME>"
+name        = "reqwew"
 readme      = "README.md"
-repository  = "https://github.com/hack-ink/<NAME>"
-version     = "0.1.0"
+repository  = "https://github.com/hack-ink/reqwew"
+version     = "0.2.0"
 
 [profile.ci-dev]
 incremental = false
 inherits    = "dev"
 
-[profile.ci-release]
-inherits = "release"
-lto      = true
-
-[build-dependencies]
-# crates.io
-vergen = { version = "8.3", features = ["build", "cargo", "git", "gitcl"] }
-
 [dependencies]
 # crates.io
-anyhow             = { version = "1.0" }
-clap               = { version = "4.5", features = ["derive"] }
-color-eyre         = { version = "0.6" }
-tracing            = { version = "0.1" }
-tracing-subscriber = { version = "0.3" }
+bytes      = { version = "1.6" }
+once_cell  = { version = "1.19" }
+reqwest    = { version = "0.12" }
+serde      = { version = "1.0" }
+serde_json = { version = "1.0" }
+thiserror  = { version = "1.0" }
+tokio      = { version = "1.38" }
+tracing    = { version = "0.1" }
+
+[dev-dependencies]
+tokio = { version = "1.38", features = ["macros"] }
