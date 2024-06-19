@@ -2,7 +2,7 @@
 
 #![deny(clippy::all, missing_docs, unused_crate_dependencies)]
 
-mod error;
+pub mod error;
 use error::*;
 
 #[cfg(test)] mod test;

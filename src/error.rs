@@ -1,3 +1,5 @@
+//! Reqwew error types.
+
 /// Reqwew result type.
 pub type Result<T> = std::result::Result<T, Error>;
 
