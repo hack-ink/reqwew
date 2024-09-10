@@ -96,6 +96,44 @@ where
 			Err(Error::ExceededMaxRetries { retries })?
 		}
 	}
+
+	/// Perform a PUT request.
+	fn put<U, B>(&self, uri: U, body: B) -> impl Future<Output = Result<Bytes>> + Send
+	where
+		U: Send + IntoUrl,
+		B: Send + Into<Body>;
+
+	/// Perform a PUT request with retries.
+	fn put_with_retries<U, B>(
+		&self,
+		uri: U,
+		body: B,
+		retries: u32,
+		retry_delay_ms: u64,
+	) -> impl Future<Output = Result<Bytes>> + Send
+	where
+		U: Send + IntoUrl,
+		B: Send + Clone + Into<Body>,
+	{
+		async move {
+			let u = uri.as_str();
+
+			for i in 1..=retries {
+				match self.put(u, body.clone()).await {
+					Ok(r) => return Ok(r),
+					Err(e) => {
+						tracing::error!(
+							"attempt {i}/{retries} failed for {u}: {e:?}, \
+							retrying in {retry_delay_ms}ms"
+						);
+						time::sleep(Duration::from_millis(retry_delay_ms)).await;
+					},
+				}
+			}
+
+			Err(Error::ExceededMaxRetries { retries })?
+		}
+	}
 }
 
 /// [`reqwest::Response`] wrapper.
@@ -165,6 +203,18 @@ impl Http for Client {
 		tracing::debug!("POST {u}");
 
 		async move { Ok(self.0.post(uri).body(body).send().await?.bytes().await?) }
+	}
+
+	fn put<U, B>(&self, uri: U, body: B) -> impl Future<Output = Result<Bytes>> + Send
+	where
+		U: Send + IntoUrl,
+		B: Send + Into<Body>,
+	{
+		let u = uri.as_str();
+
+		tracing::debug!("PUT {u}");
+
+		async move { Ok(self.0.put(uri).body(body).send().await?.bytes().await?) }
 	}
 }
 
