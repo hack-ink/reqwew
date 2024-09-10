@@ -30,7 +30,7 @@ where
 		U: Send + IntoUrl;
 
 	/// Perform a GET request with retries.
-	fn get_with_reties<U>(
+	fn get_with_retries<U>(
 		&self,
 		uri: U,
 		retries: u32,
