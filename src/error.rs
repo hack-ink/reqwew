@@ -12,6 +12,6 @@ pub enum Error {
 	#[error(transparent)]
 	SerdeJson(#[from] serde_json::Error),
 
-	#[error("[api] max retries exceeded after {retries} attempts")]
-	ExceededMaxRetries { retries: u32 },
+	#[error("[reqwew] max retries exceeded after {0} attempts")]
+	ExceededMaxRetries(u32),
 }

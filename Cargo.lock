@@ -635,7 +635,7 @@ dependencies = [
 
 [[package]]
 name = "reqwew"
-version = "0.2.5"
+version = "0.3.0"
 dependencies = [
  "bytes",
  "once_cell",

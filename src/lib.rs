@@ -15,19 +15,103 @@ use std::{future::Future, time::Duration};
 // crates.io
 use bytes::Bytes;
 use once_cell::sync::Lazy;
-use reqwest::{Body, Client as RClient, IntoUrl};
+use reqwest::{Body, Client as RClient, IntoUrl, Method as RMethod};
 use serde::de::DeserializeOwned;
 use tokio::time;
+
+/// HTTP methods.
+#[derive(Clone, Copy, Debug)]
+pub enum Method {
+	/// GET method.
+	Get,
+	/// POST method.
+	Post,
+	/// PUT method.
+	Put,
+	/// DELETE method.
+	Delete,
+	/// HEAD method.
+	Head,
+	/// OPTIONS method.
+	Options,
+	/// CONNECT method.
+	Connect,
+	/// PATCH method.
+	Patch,
+	/// TRACE method.
+	Trace,
+}
+impl From<Method> for RMethod {
+	fn from(method: Method) -> Self {
+		match method {
+			Method::Get => RMethod::GET,
+			Method::Post => RMethod::POST,
+			Method::Put => RMethod::PUT,
+			Method::Delete => RMethod::DELETE,
+			Method::Head => RMethod::HEAD,
+			Method::Options => RMethod::OPTIONS,
+			Method::Connect => RMethod::CONNECT,
+			Method::Patch => RMethod::PATCH,
+			Method::Trace => RMethod::TRACE,
+		}
+	}
+}
 
 /// Basic HTTP client functionality.
 pub trait Http
 where
 	Self: Send + Sync,
 {
+	/// Perform a generic request.
+	fn request<U, B>(
+		&self,
+		uri: U,
+		method: Method,
+		body: Option<B>,
+	) -> impl Future<Output = Result<Bytes>> + Send
+	where
+		U: Send + IntoUrl,
+		B: Send + Into<Body>;
+
+	/// Perform a generic request with retries.
+	fn request_with_retries<U, B>(
+		&self,
+		uri: U,
+		method: Method,
+		body: Option<B>,
+		retries: u32,
+		retry_delay_ms: u64,
+	) -> impl Future<Output = Result<Bytes>> + Send
+	where
+		U: Send + IntoUrl,
+		B: Send + Clone + Into<Body>,
+	{
+		async move {
+			let u = uri.as_str();
+
+			tracing::debug!("{method:?} {u}");
+
+			for i in 1..=retries {
+				match self.request(u, method, body.clone()).await {
+					Ok(r) => return Ok(r),
+					Err(e) => {
+						tracing::error!("attempt {i}/{retries} failed for {u}: {e:?}, retrying in {retry_delay_ms}ms");
+						time::sleep(Duration::from_millis(retry_delay_ms)).await;
+					},
+				}
+			}
+
+			Err(Error::ExceededMaxRetries(retries))?
+		}
+	}
+
 	/// Perform a GET request.
 	fn get<U>(&self, uri: U) -> impl Future<Output = Result<Bytes>> + Send
 	where
-		U: Send + IntoUrl;
+		U: Send + IntoUrl,
+	{
+		self.request(uri, Method::Get, None::<&[u8]>)
+	}
 
 	/// Perform a GET request with retries.
 	fn get_with_retries<U>(
@@ -39,31 +123,17 @@ where
 	where
 		U: Send + IntoUrl,
 	{
-		async move {
-			let u = uri.as_str();
-
-			for i in 1..=retries {
-				match self.get(u).await {
-					Ok(r) => return Ok(r),
-					Err(e) => {
-						tracing::error!(
-							"attempt {i}/{retries} failed for {u}: {e:?}, \
-								retrying in {retry_delay_ms}ms"
-						);
-						time::sleep(Duration::from_millis(retry_delay_ms)).await;
-					},
-				}
-			}
-
-			Err(Error::ExceededMaxRetries { retries })?
-		}
+		self.request_with_retries(uri, Method::Get, None::<&[u8]>, retries, retry_delay_ms)
 	}
 
 	/// Perform a POST request.
 	fn post<U, B>(&self, uri: U, body: B) -> impl Future<Output = Result<Bytes>> + Send
 	where
 		U: Send + IntoUrl,
-		B: Send + Into<Body>;
+		B: Send + Into<Body>,
+	{
+		self.request(uri, Method::Post, Some(body))
+	}
 
 	/// Perform a POST request with retries.
 	fn post_with_retries<U, B>(
@@ -77,34 +147,113 @@ where
 		U: Send + IntoUrl,
 		B: Send + Clone + Into<Body>,
 	{
-		async move {
-			let u = uri.as_str();
-
-			for i in 1..=retries {
-				match self.post(u, body.clone()).await {
-					Ok(r) => return Ok(r),
-					Err(e) => {
-						tracing::error!(
-							"attempt {i}/{retries} failed for {u}: {e:?}, \
-							retrying in {retry_delay_ms}ms"
-						);
-						time::sleep(Duration::from_millis(retry_delay_ms)).await;
-					},
-				}
-			}
-
-			Err(Error::ExceededMaxRetries { retries })?
-		}
+		self.request_with_retries(uri, Method::Post, Some(body), retries, retry_delay_ms)
 	}
 
 	/// Perform a PUT request.
 	fn put<U, B>(&self, uri: U, body: B) -> impl Future<Output = Result<Bytes>> + Send
 	where
 		U: Send + IntoUrl,
-		B: Send + Into<Body>;
+		B: Send + Into<Body>,
+	{
+		self.request(uri, Method::Put, Some(body))
+	}
 
-	/// Perform a PUT request with retries.
-	fn put_with_retries<U, B>(
+	/// Perform a DELETE request.
+	fn delete<U>(&self, uri: U) -> impl Future<Output = Result<Bytes>> + Send
+	where
+		U: Send + IntoUrl,
+	{
+		self.request(uri, Method::Delete, None::<&[u8]>)
+	}
+
+	/// Perform a DELETE request with retries.
+	fn delete_with_retries<U>(
+		&self,
+		uri: U,
+		retries: u32,
+		retry_delay_ms: u64,
+	) -> impl Future<Output = Result<Bytes>> + Send
+	where
+		U: Send + IntoUrl,
+	{
+		self.request_with_retries(uri, Method::Delete, None::<&[u8]>, retries, retry_delay_ms)
+	}
+
+	/// Perform a HEAD request.
+	fn head<U>(&self, uri: U) -> impl Future<Output = Result<Bytes>> + Send
+	where
+		U: Send + IntoUrl,
+	{
+		self.request(uri, Method::Head, None::<&[u8]>)
+	}
+
+	/// Perform a HEAD request with retries.
+	fn head_with_retries<U>(
+		&self,
+		uri: U,
+		retries: u32,
+		retry_delay_ms: u64,
+	) -> impl Future<Output = Result<Bytes>> + Send
+	where
+		U: Send + IntoUrl,
+	{
+		self.request_with_retries(uri, Method::Head, None::<&[u8]>, retries, retry_delay_ms)
+	}
+
+	/// Perform an OPTIONS request.
+	fn options<U>(&self, uri: U) -> impl Future<Output = Result<Bytes>> + Send
+	where
+		U: Send + IntoUrl,
+	{
+		self.request(uri, Method::Options, None::<&[u8]>)
+	}
+
+	/// Perform an OPTIONS request with retries.
+	fn options_with_retries<U>(
+		&self,
+		uri: U,
+		retries: u32,
+		retry_delay_ms: u64,
+	) -> impl Future<Output = Result<Bytes>> + Send
+	where
+		U: Send + IntoUrl,
+	{
+		self.request_with_retries(uri, Method::Options, None::<&[u8]>, retries, retry_delay_ms)
+	}
+
+	/// Perform a CONNECT request.
+	fn connect<U>(&self, uri: U) -> impl Future<Output = Result<Bytes>> + Send
+	where
+		U: Send + IntoUrl,
+	{
+		self.request(uri, Method::Connect, None::<&[u8]>)
+	}
+
+	/// Perform a CONNECT request with retries.
+	fn connect_with_retries<U>(
+		&self,
+		uri: U,
+		retries: u32,
+		retry_delay_ms: u64,
+	) -> impl Future<Output = Result<Bytes>> + Send
+	where
+		U: Send + IntoUrl,
+	{
+		self.request_with_retries(uri, Method::Connect, None::<&[u8]>, retries, retry_delay_ms)
+	}
+
+	/// Perform a PATCH request.
+	fn patch<U, B>(&self, uri: U, body: B) -> impl Future<Output = Result<Bytes>> + Send
+	where
+		U: Send + IntoUrl,
+		B: Send + Into<Body>,
+	{
+		self.request(uri, Method::Patch, Some(body))
+	}
+
+	/// Perform a PATCH request with retries.
+	fn patch_with_retries<U, B>(
 		&self,
 		uri: U,
 		body: B,
@@ -115,24 +264,28 @@ where
 		U: Send + IntoUrl,
 		B: Send + Clone + Into<Body>,
 	{
-		async move {
-			let u = uri.as_str();
+		self.request_with_retries(uri, Method::Patch, Some(body), retries, retry_delay_ms)
+	}
 
-			for i in 1..=retries {
-				match self.put(u, body.clone()).await {
-					Ok(r) => return Ok(r),
-					Err(e) => {
-						tracing::error!(
-							"attempt {i}/{retries} failed for {u}: {e:?}, \
-							retrying in {retry_delay_ms}ms"
-						);
-						time::sleep(Duration::from_millis(retry_delay_ms)).await;
-					},
-				}
-			}
+	/// Perform a TRACE request.
+	fn trace<U>(&self, uri: U) -> impl Future<Output = Result<Bytes>> + Send
+	where
+		U: Send + IntoUrl,
+	{
+		self.request(uri, Method::Trace, None::<&[u8]>)
+	}
 
-			Err(Error::ExceededMaxRetries { retries })?
-		}
+	/// Perform a TRACE request with retries.
+	fn trace_with_retries<U>(
+		&self,
+		uri: U,
+		retries: u32,
+		retry_delay_ms: u64,
+	) -> impl Future<Output = Result<Bytes>> + Send
+	where
+		U: Send + IntoUrl,
+	{
+		self.request_with_retries(uri, Method::Trace, None::<&[u8]>, retries, retry_delay_ms)
 	}
 }
 
@@ -182,39 +335,27 @@ impl From<&RClient> for Client {
 	}
 }
 impl Http for Client {
-	fn get<U>(&self, uri: U) -> impl Future<Output = Result<Bytes>> + Send
-	where
-		U: Send + IntoUrl,
-	{
-		let u = uri.as_str();
-
-		tracing::debug!("GET {u}");
-
-		async move { Ok(self.0.get(uri).send().await?.bytes().await?) }
-	}
-
-	fn post<U, B>(&self, uri: U, body: B) -> impl Future<Output = Result<Bytes>> + Send
+	fn request<U, B>(
+		&self,
+		uri: U,
+		method: Method,
+		body: Option<B>,
+	) -> impl Future<Output = Result<Bytes>> + Send
 	where
 		U: Send + IntoUrl,
 		B: Send + Into<Body>,
 	{
 		let u = uri.as_str();
 
-		tracing::debug!("POST {u}");
+		tracing::debug!("{method:?} {u}");
 
-		async move { Ok(self.0.post(uri).body(body).send().await?.bytes().await?) }
-	}
-
-	fn put<U, B>(&self, uri: U, body: B) -> impl Future<Output = Result<Bytes>> + Send
-	where
-		U: Send + IntoUrl,
-		B: Send + Into<Body>,
-	{
-		let u = uri.as_str();
-
-		tracing::debug!("PUT {u}");
-
-		async move { Ok(self.0.put(uri).body(body).send().await?.bytes().await?) }
+		async move {
+			Ok(if let Some(body) = body {
+				self.0.request(method.into(), uri).body(body).send().await?.bytes().await?
+			} else {
+				self.0.request(method.into(), uri).send().await?.bytes().await?
+			})
+		}
 	}
 }
 
@@ -224,7 +365,9 @@ impl Http for Client {
 ///
 /// # Example
 /// ```rust
-/// pub static CLIENT: Client = reqwew::static(|| reqwest::Client::new());
+/// use reqwew::{once_cell::sync::Lazy, Client};
+///
+/// pub static CLIENT: Lazy<Client> = reqwew::lazy(|| Client::default());
 /// ```
 pub const fn lazy<F>(f: F) -> Lazy<Client, F> {
 	Lazy::new(f)

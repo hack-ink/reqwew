@@ -7,7 +7,7 @@ static CLIENT: Lazy<Client> = lazy(Default::default);
 
 #[tokio::test]
 async fn http_and_response_should_work() {
-	let response = CLIENT.get_with_reties("https://httpbin.org/get", 3, 500).await.unwrap();
+	let response = CLIENT.get_with_retries("https://httpbin.org/get", 3, 500).await.unwrap();
 
 	assert!(response.clone().text().contains("httpbin.org"));
 	assert_eq!(
@@ -15,8 +15,7 @@ async fn http_and_response_should_work() {
 		"httpbin.org"
 	);
 
-	let response =
-		CLIENT.post_with_retries("https://httpbin.org/post", "hello", 3, 500).await.unwrap();
+	let response = CLIENT.post_with_retries("https://httpbin.org/post", "hello", 3, 500).await.unwrap();
 
 	assert!(response.clone().text().contains("https://httpbin.org/post"));
 	assert_eq!(
