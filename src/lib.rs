@@ -84,7 +84,7 @@ where
 	) -> impl Future<Output = Result<Bytes>> + Send
 	where
 		U: Send + IntoUrl,
-		B: Send + Clone + Into<Body>,
+		B: Clone + Send + Into<Body>,
 	{
 		async move {
 			let u = uri.as_str();
@@ -145,7 +145,7 @@ where
 	) -> impl Future<Output = Result<Bytes>> + Send
 	where
 		U: Send + IntoUrl,
-		B: Send + Clone + Into<Body>,
+		B: Clone + Send + Into<Body>,
 	{
 		self.request_with_retries(uri, Method::Post, Some(body), retries, retry_delay_ms)
 	}
@@ -157,6 +157,21 @@ where
 		B: Send + Into<Body>,
 	{
 		self.request(uri, Method::Put, Some(body))
+	}
+
+	/// Perform a PUT request with retries.
+	fn put_with_retries<U, B>(
+		&self,
+		uri: U,
+		body: B,
+		retries: u32,
+		retry_delay_ms: u64,
+	) -> impl Future<Output = Result<Bytes>> + Send
+	where
+		U: Send + IntoUrl,
+		B: Clone + Send + Into<Body>,
+	{
+		self.request_with_retries(uri, Method::Put, Some(body), retries, retry_delay_ms)
 	}
 
 	/// Perform a DELETE request.
@@ -262,7 +277,7 @@ where
 	) -> impl Future<Output = Result<Bytes>> + Send
 	where
 		U: Send + IntoUrl,
-		B: Send + Clone + Into<Body>,
+		B: Clone + Send + Into<Body>,
 	{
 		self.request_with_retries(uri, Method::Patch, Some(body), retries, retry_delay_ms)
 	}
