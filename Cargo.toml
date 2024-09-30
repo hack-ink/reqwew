@@ -18,7 +18,7 @@ inherits    = "dev"
 [dependencies]
 # crates.io
 bytes      = { version = "1.7" }
-once_cell  = { version = "1.19" }
+once_cell  = { version = "1.20" }
 reqwest    = { version = "0.12" }
 serde      = { version = "1.0" }
 serde_json = { version = "1.0" }
