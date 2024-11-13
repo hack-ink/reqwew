@@ -15,7 +15,8 @@ async fn http_and_response_should_work() {
 		"httpbin.org"
 	);
 
-	let response = CLIENT.post_with_retries("https://httpbin.org/post", "hello", 3, 500).await.unwrap();
+	let response =
+		CLIENT.post_with_retries("https://httpbin.org/post", "hello", 3, 500).await.unwrap();
 
 	assert!(response.clone().text().contains("https://httpbin.org/post"));
 	assert_eq!(
