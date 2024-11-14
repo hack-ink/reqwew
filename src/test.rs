@@ -3,7 +3,7 @@ use serde_json::Value;
 // self
 use super::*;
 
-static CLIENT: Lazy<Client> = lazy(Default::default);
+static CLIENT: LazyLock<Client> = lazy(Default::default);
 
 #[tokio::test]
 async fn http_and_response_should_work() {

@@ -7,14 +7,12 @@ use error::*;
 
 #[cfg(test)] mod test;
 
-pub use once_cell;
 pub use reqwest;
 
 // std
-use std::{future::Future, time::Duration};
+use std::{future::Future, sync::LazyLock, time::Duration};
 // crates.io
 use bytes::Bytes;
-use once_cell::sync::Lazy;
 use reqwest::{Body, Client as RClient, IntoUrl, Method as RMethod};
 use serde::de::DeserializeOwned;
 use tokio::time;
@@ -380,10 +378,14 @@ impl Http for Client {
 ///
 /// # Example
 /// ```rust
-/// use reqwew::{once_cell::sync::Lazy, Client};
+/// use reqwew::Client;
+/// use std::sync::LazyLock;
 ///
-/// pub static CLIENT: Lazy<Client> = reqwew::lazy(|| Client::default());
+/// pub static CLIENT: LazyLock<Client> = reqwew::lazy(|| Client::default());
 /// ```
-pub const fn lazy<F>(f: F) -> Lazy<Client, F> {
-	Lazy::new(f)
+pub const fn lazy<F>(f: F) -> LazyLock<Client, F>
+where
+	F: FnOnce() -> Client,
+{
+	LazyLock::new(f)
 }
