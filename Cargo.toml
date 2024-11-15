@@ -1,5 +1,5 @@
 [package]
-authors     = ["Xavier Lau <xavier@inv.cafe>"]
+authors     = ["Xavier Lau <x@acg.box>"]
 categories  = ["web-programming::http-client"]
 description = "Reqwest effortless wrapper."
 edition     = "2021"
