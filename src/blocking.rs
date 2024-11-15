@@ -3,43 +3,37 @@
 // std
 use std::thread;
 // crates.io
-use reqwest::blocking::{Body, Client};
+#[cfg(feature = "reqwest")] use reqwest::blocking::{Client, Request};
 // self
 use crate::*;
 
-/// Basic blocking HTTP client functionality.
+/// Blocking HTTP client functionality.
 pub trait Http
 where
 	Self: Send + Sync,
 {
+	/// Request type.
+	///
+	/// If the body is a stream type, it may not be cloneable.
+	type Request: Send + TryClone;
+	/// Response type.
+	type Response: Send;
+
 	/// Perform a generic request.
-	fn request<U, B>(&self, uri: U, method: Method, body: Option<B>) -> Result<Bytes>
-	where
-		U: Send + IntoUrl,
-		B: Send + Into<Body>;
+	fn request(&self, request: Self::Request) -> Result<Self::Response>;
 
 	/// Perform a generic request with retries.
-	fn request_with_retries<U, B>(
+	fn request_with_retries(
 		&self,
-		uri: U,
-		method: Method,
-		body: Option<B>,
+		request: Self::Request,
 		retries: u32,
 		retry_delay_ms: u64,
-	) -> Result<Bytes>
-	where
-		U: Send + IntoUrl,
-		B: Clone + Send + Into<Body>,
-	{
-		let u = uri.as_str();
-
-		tracing::debug!("{method:?} {u}");
-
+	) -> Result<Self::Response> {
 		for i in 1..=retries {
-			match self.request(u, method, body.clone()) {
+			match self.request(request.try_clone().ok_or(Error::NonRetriableRequest)?) {
 				Ok(r) => return Ok(r),
 				Err(e) => {
-					tracing::error!("attempt {i}/{retries} failed for {u}: {e:?}, retrying in {retry_delay_ms}ms");
+					tracing::error!("attempt {i}/{retries}, {e:?}, retrying in {retry_delay_ms}ms");
 					thread::sleep(Duration::from_millis(retry_delay_ms));
 				},
 			}
@@ -47,189 +41,23 @@ where
 
 		Err(Error::ExceededMaxRetries(retries))?
 	}
+}
+#[cfg(feature = "reqwest")]
+impl Http for Client {
+	type Request = Request;
+	type Response = Bytes;
 
-	/// Perform a GET request.
-	fn get<U>(&self, uri: U) -> Result<Bytes>
-	where
-		U: Send + IntoUrl,
-	{
-		self.request(uri, Method::Get, None::<&[u8]>)
-	}
+	fn request(&self, request: Self::Request) -> Result<Self::Response> {
+		#[cfg(feature = "extra-tracing")]
+		tracing::info!("{:?} {}", request.method(), request.url());
 
-	/// Perform a GET request with retries.
-	fn get_with_retries<U>(&self, uri: U, retries: u32, retry_delay_ms: u64) -> Result<Bytes>
-	where
-		U: Send + IntoUrl,
-	{
-		self.request_with_retries(uri, Method::Get, None::<&[u8]>, retries, retry_delay_ms)
-	}
-
-	/// Perform a POST request.
-	fn post<U, B>(&self, uri: U, body: B) -> Result<Bytes>
-	where
-		U: Send + IntoUrl,
-		B: Send + Into<Body>,
-	{
-		self.request(uri, Method::Post, Some(body))
-	}
-
-	/// Perform a POST request with retries.
-	fn post_with_retries<U, B>(
-		&self,
-		uri: U,
-		body: B,
-		retries: u32,
-		retry_delay_ms: u64,
-	) -> Result<Bytes>
-	where
-		U: Send + IntoUrl,
-		B: Clone + Send + Into<Body>,
-	{
-		self.request_with_retries(uri, Method::Post, Some(body), retries, retry_delay_ms)
-	}
-
-	/// Perform a PUT request.
-	fn put<U, B>(&self, uri: U, body: B) -> Result<Bytes>
-	where
-		U: Send + IntoUrl,
-		B: Send + Into<Body>,
-	{
-		self.request(uri, Method::Put, Some(body))
-	}
-
-	/// Perform a PUT request with retries.
-	fn put_with_retries<U, B>(
-		&self,
-		uri: U,
-		body: B,
-		retries: u32,
-		retry_delay_ms: u64,
-	) -> Result<Bytes>
-	where
-		U: Send + IntoUrl,
-		B: Clone + Send + Into<Body>,
-	{
-		self.request_with_retries(uri, Method::Put, Some(body), retries, retry_delay_ms)
-	}
-
-	/// Perform a DELETE request.
-	fn delete<U>(&self, uri: U) -> Result<Bytes>
-	where
-		U: Send + IntoUrl,
-	{
-		self.request(uri, Method::Delete, None::<&[u8]>)
-	}
-
-	/// Perform a DELETE request with retries.
-	fn delete_with_retries<U>(&self, uri: U, retries: u32, retry_delay_ms: u64) -> Result<Bytes>
-	where
-		U: Send + IntoUrl,
-	{
-		self.request_with_retries(uri, Method::Delete, None::<&[u8]>, retries, retry_delay_ms)
-	}
-
-	/// Perform a HEAD request.
-	fn head<U>(&self, uri: U) -> Result<Bytes>
-	where
-		U: Send + IntoUrl,
-	{
-		self.request(uri, Method::Head, None::<&[u8]>)
-	}
-
-	/// Perform a HEAD request with retries.
-	fn head_with_retries<U>(&self, uri: U, retries: u32, retry_delay_ms: u64) -> Result<Bytes>
-	where
-		U: Send + IntoUrl,
-	{
-		self.request_with_retries(uri, Method::Head, None::<&[u8]>, retries, retry_delay_ms)
-	}
-
-	/// Perform an OPTIONS request.
-	fn options<U>(&self, uri: U) -> Result<Bytes>
-	where
-		U: Send + IntoUrl,
-	{
-		self.request(uri, Method::Options, None::<&[u8]>)
-	}
-
-	/// Perform an OPTIONS request with retries.
-	fn options_with_retries<U>(&self, uri: U, retries: u32, retry_delay_ms: u64) -> Result<Bytes>
-	where
-		U: Send + IntoUrl,
-	{
-		self.request_with_retries(uri, Method::Options, None::<&[u8]>, retries, retry_delay_ms)
-	}
-
-	/// Perform a CONNECT request.
-	fn connect<U>(&self, uri: U) -> Result<Bytes>
-	where
-		U: Send + IntoUrl,
-	{
-		self.request(uri, Method::Connect, None::<&[u8]>)
-	}
-
-	/// Perform a CONNECT request with retries.
-	fn connect_with_retries<U>(&self, uri: U, retries: u32, retry_delay_ms: u64) -> Result<Bytes>
-	where
-		U: Send + IntoUrl,
-	{
-		self.request_with_retries(uri, Method::Connect, None::<&[u8]>, retries, retry_delay_ms)
-	}
-
-	/// Perform a PATCH request.
-	fn patch<U, B>(&self, uri: U, body: B) -> Result<Bytes>
-	where
-		U: Send + IntoUrl,
-		B: Send + Into<Body>,
-	{
-		self.request(uri, Method::Patch, Some(body))
-	}
-
-	/// Perform a PATCH request with retries.
-	fn patch_with_retries<U, B>(
-		&self,
-		uri: U,
-		body: B,
-		retries: u32,
-		retry_delay_ms: u64,
-	) -> Result<Bytes>
-	where
-		U: Send + IntoUrl,
-		B: Clone + Send + Into<Body>,
-	{
-		self.request_with_retries(uri, Method::Patch, Some(body), retries, retry_delay_ms)
-	}
-
-	/// Perform a TRACE request.
-	fn trace<U>(&self, uri: U) -> Result<Bytes>
-	where
-		U: Send + IntoUrl,
-	{
-		self.request(uri, Method::Trace, None::<&[u8]>)
-	}
-
-	/// Perform a TRACE request with retries.
-	fn trace_with_retries<U>(&self, uri: U, retries: u32, retry_delay_ms: u64) -> Result<Bytes>
-	where
-		U: Send + IntoUrl,
-	{
-		self.request_with_retries(uri, Method::Trace, None::<&[u8]>, retries, retry_delay_ms)
+		Ok(self.execute(request)?.bytes()?)
 	}
 }
-impl Http for Client {
-	fn request<U, B>(&self, uri: U, method: Method, body: Option<B>) -> Result<Bytes>
-	where
-		U: Send + IntoUrl,
-		B: Send + Into<Body>,
-	{
-		let u = uri.as_str();
 
-		tracing::debug!("{method:?} {u}");
-
-		Ok(if let Some(body) = body {
-			self.request(method.into(), uri).body(body).send()?.bytes()?
-		} else {
-			self.request(method.into(), uri).send()?.bytes()?
-		})
+#[cfg(feature = "reqwest")]
+impl TryClone for Request {
+	fn try_clone(&self) -> Option<Self> {
+		self.try_clone()
 	}
 }

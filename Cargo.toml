@@ -9,7 +9,7 @@ license     = "GPL-3.0"
 name        = "reqwew"
 readme      = "README.md"
 repository  = "https://github.com/hack-ink/reqwew"
-version     = "0.5.0"
+version     = "0.6.0"
 
 [profile.ci-dev]
 incremental = false
@@ -20,34 +20,37 @@ default = [
 	"charset",
 	"default-tls",
 	"http2",
+	"reqwest",
 ]
 
-blocking                = ["reqwest/blocking"]
-brotli                  = ["reqwest/brotli"]
-charset                 = ["reqwest/charset"]
-cookies                 = ["reqwest/cookies"]
-default-tls             = ["reqwest/default-tls"]
-deflate                 = ["reqwest/deflate"]
-gzip                    = ["reqwest/gzip"]
-hickory-dns             = ["reqwest/hickory-dns"]
-http2                   = ["reqwest/http2"]
-json                    = ["reqwest/json"]
-multipart               = ["reqwest/multipart"]
-native-tls              = ["reqwest/native-tls"]
-native-tls-alpn         = ["reqwest/native-tls-alpn"]
-native-tls-vendored     = ["reqwest/native-tls-vendored"]
-rustls-tls              = ["reqwest/rustls-tls"]
-rustls-tls-manual-roots = ["reqwest/rustls-tls-manual-roots"]
-rustls-tls-native-roots = ["reqwest/rustls-tls-native-roots"]
-rustls-tls-webpki-roots = ["reqwest/rustls-tls-webpki-roots"]
-socks                   = ["reqwest/socks"]
-stream                  = ["reqwest/stream"]
-zstd                    = ["reqwest/zstd"]
+blocking                = ["reqwest?/blocking"]
+brotli                  = ["reqwest?/brotli"]
+charset                 = ["reqwest?/charset"]
+cookies                 = ["reqwest?/cookies"]
+default-tls             = ["reqwest?/default-tls"]
+deflate                 = ["reqwest?/deflate"]
+gzip                    = ["reqwest?/gzip"]
+hickory-dns             = ["reqwest?/hickory-dns"]
+http2                   = ["reqwest?/http2"]
+json                    = ["reqwest?/json"]
+multipart               = ["reqwest?/multipart"]
+native-tls              = ["reqwest?/native-tls"]
+native-tls-alpn         = ["reqwest?/native-tls-alpn"]
+native-tls-vendored     = ["reqwest?/native-tls-vendored"]
+rustls-tls              = ["reqwest?/rustls-tls"]
+rustls-tls-manual-roots = ["reqwest?/rustls-tls-manual-roots"]
+rustls-tls-native-roots = ["reqwest?/rustls-tls-native-roots"]
+rustls-tls-webpki-roots = ["reqwest?/rustls-tls-webpki-roots"]
+socks                   = ["reqwest?/socks"]
+stream                  = ["reqwest?/stream"]
+zstd                    = ["reqwest?/zstd"]
+
+extra-tracing = ["reqwest"]
 
 [dependencies]
 # crates.io
 bytes      = { version = "1.8" }
-reqwest    = { version = "0.12", default-features = false }
+reqwest    = { version = "0.12", optional = true, default-features = false }
 serde      = { version = "1.0" }
 serde_json = { version = "1.0" }
 thiserror  = { version = "2.0" }
@@ -56,4 +59,5 @@ tracing    = { version = "0.1" }
 
 [dev-dependencies]
 # crates.io
-tokio = { version = "1.41", features = ["macros"] }
+reqwest = { version = "0.12", features = ["blocking"] }
+tokio   = { version = "1.41", features = ["macros"] }
