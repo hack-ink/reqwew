@@ -2,6 +2,8 @@
 
 #![deny(clippy::all, missing_docs, unused_crate_dependencies)]
 
+#[cfg(feature = "blocking")] pub mod blocking;
+
 pub mod error;
 use error::*;
 
@@ -13,30 +15,30 @@ pub use reqwest;
 use std::{future::Future, sync::LazyLock, time::Duration};
 // crates.io
 use bytes::Bytes;
-use reqwest::{Body, Client as RClient, IntoUrl, Method as RMethod};
+use reqwest::{Body, Client, IntoUrl, Method as RMethod};
 use serde::de::DeserializeOwned;
 use tokio::time;
 
 /// HTTP methods.
 #[derive(Clone, Copy, Debug)]
 pub enum Method {
-	/// GET method.
+	/// HTTP GET method.
 	Get,
-	/// POST method.
+	/// HTTP POST method.
 	Post,
-	/// PUT method.
+	/// HTTP PUT method.
 	Put,
-	/// DELETE method.
+	/// HTTP DELETE method.
 	Delete,
-	/// HEAD method.
+	/// HTTP HEAD method.
 	Head,
-	/// OPTIONS method.
+	/// HTTP OPTIONS method.
 	Options,
-	/// CONNECT method.
+	/// HTTP CONNECT method.
 	Connect,
-	/// PATCH method.
+	/// HTTP PATCH method.
 	Patch,
-	/// TRACE method.
+	/// HTTP TRACE method.
 	Trace,
 }
 impl From<Method> for RMethod {
@@ -301,6 +303,30 @@ where
 		self.request_with_retries(uri, Method::Trace, None::<&[u8]>, retries, retry_delay_ms)
 	}
 }
+impl Http for Client {
+	fn request<U, B>(
+		&self,
+		uri: U,
+		method: Method,
+		body: Option<B>,
+	) -> impl Future<Output = Result<Bytes>> + Send
+	where
+		U: Send + IntoUrl,
+		B: Send + Into<Body>,
+	{
+		let u = uri.as_str();
+
+		tracing::debug!("{method:?} {u}");
+
+		async move {
+			Ok(if let Some(body) = body {
+				self.request(method.into(), uri).body(body).send().await?.bytes().await?
+			} else {
+				self.request(method.into(), uri).send().await?.bytes().await?
+			})
+		}
+	}
+}
 
 /// [`reqwest::Response`] wrapper.
 pub trait Response
@@ -334,58 +360,24 @@ where
 }
 impl Response for Bytes {}
 
-/// [`reqwest::Client`] wrapper.
-#[derive(Debug, Default)]
-pub struct Client(pub RClient);
-impl From<RClient> for Client {
-	fn from(value: RClient) -> Self {
-		Self(value)
-	}
-}
-impl From<&RClient> for Client {
-	fn from(value: &RClient) -> Self {
-		Self(value.to_owned())
-	}
-}
-impl Http for Client {
-	fn request<U, B>(
-		&self,
-		uri: U,
-		method: Method,
-		body: Option<B>,
-	) -> impl Future<Output = Result<Bytes>> + Send
-	where
-		U: Send + IntoUrl,
-		B: Send + Into<Body>,
-	{
-		let u = uri.as_str();
-
-		tracing::debug!("{method:?} {u}");
-
-		async move {
-			Ok(if let Some(body) = body {
-				self.0.request(method.into(), uri).body(body).send().await?.bytes().await?
-			} else {
-				self.0.request(method.into(), uri).send().await?.bytes().await?
-			})
-		}
-	}
-}
-
-/// Create a new static [`Client`] instance.
+/// Create a new lazy static client instance.
 ///
 /// This is useful to avoid allocating multiple new clients.
 ///
 /// # Example
 /// ```rust
-/// use reqwew::Client;
+/// // std
 /// use std::sync::LazyLock;
+/// // crates.io
+/// use reqwew::reqwest::{blocking::Client as BlockingClient, Client};
 ///
 /// pub static CLIENT: LazyLock<Client> = reqwew::lazy(|| Client::default());
+/// pub static BLOCKING_CLIENT: LazyLock<BlockingClient> =
+/// 	reqwew::lazy(|| BlockingClient::default());
 /// ```
-pub const fn lazy<F>(f: F) -> LazyLock<Client, F>
+pub const fn lazy<F, C>(f: F) -> LazyLock<C, F>
 where
-	F: FnOnce() -> Client,
+	F: FnOnce() -> C,
 {
 	LazyLock::new(f)
 }
