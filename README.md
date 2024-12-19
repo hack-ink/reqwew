@@ -21,7 +21,10 @@ Now it has evolved into a more generic solution, allowing you to implement the `
 // std
 use std::sync::LazyLock;
 // crates.io
-use reqwew::{reqwest::Client, Http, Response};
+use reqwew::{
+	reqwest::{Client, Method},
+	Http, Response,
+};
 use serde_json::Value;
 
 // Lazy static.
@@ -59,7 +62,9 @@ assert_eq!(resp.json::<Value>().unwrap()["url"].as_str().unwrap(), "https://http
 use std::sync::LazyLock;
 // crates.io
 use reqwew::{
-	blocking::Http as BlockingHttp, reqwest::blocking::Client as BlockingClient, Response,
+	blocking::Http as BlockingHttp,
+	reqwest::{blocking::Client as BlockingClient, Method},
+	Response,
 };
 use serde_json::Value;
 
