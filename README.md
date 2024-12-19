@@ -28,7 +28,7 @@ use reqwew::{
 use serde_json::Value;
 
 // Lazy static.
-pub static CLIENT: LazyLock<Client> = reqwew::lazy(|| Client::default());
+pub static CLIENT: LazyLock<Client> = reqwew::lazy(Client::default);
 
 // Async.
 let resp = CLIENT
@@ -69,7 +69,7 @@ use reqwew::{
 use serde_json::Value;
 
 // Lazy static.
-pub static BLOCKING_CLIENT: LazyLock<BlockingClient> = reqwew::lazy(|| BlockingClient::default());
+pub static BLOCKING_CLIENT: LazyLock<BlockingClient> = reqwew::lazy(BlockingClient::default);
 
 // Blocking.
 let resp = BLOCKING_CLIENT
