@@ -9,7 +9,7 @@ license     = "GPL-3.0"
 name        = "reqwew"
 readme      = "README.md"
 repository  = "https://github.com/hack-ink/reqwew"
-version     = "0.6.0"
+version     = "0.6.1"
 
 [profile.ci-dev]
 incremental = false
@@ -49,15 +49,15 @@ extra-tracing = ["reqwest"]
 
 [dependencies]
 # crates.io
-bytes      = { version = "1.8" }
+bytes      = { version = "1.9" }
 reqwest    = { version = "0.12", optional = true, default-features = false }
 serde      = { version = "1.0" }
 serde_json = { version = "1.0" }
 thiserror  = { version = "2.0" }
-tokio      = { version = "1.41" }
+tokio      = { version = "1.42" }
 tracing    = { version = "0.1" }
 
 [dev-dependencies]
 # crates.io
 reqwest = { version = "0.12", features = ["blocking"] }
-tokio   = { version = "1.41", features = ["macros"] }
+tokio   = { version = "1.42", features = ["macros"] }

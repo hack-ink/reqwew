@@ -108,7 +108,7 @@ where
 			Ok(d) => Ok(d),
 			Err(e) => {
 				tracing::error!(
-					"failed to deserialize the following response into an object {}",
+					"failed to deserialize the following response into an object\n```\n{}\n```",
 					String::from_utf8_lossy(s)
 				);
 
