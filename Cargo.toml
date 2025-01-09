@@ -54,10 +54,10 @@ reqwest    = { version = "0.12", optional = true, default-features = false }
 serde      = { version = "1.0" }
 serde_json = { version = "1.0" }
 thiserror  = { version = "2.0" }
-tokio      = { version = "1.42" }
+tokio      = { version = "1.43" }
 tracing    = { version = "0.1" }
 
 [dev-dependencies]
 # crates.io
 reqwest = { version = "0.12", features = ["blocking"] }
-tokio   = { version = "1.42", features = ["macros"] }
+tokio   = { version = "1.43", features = ["macros"] }
