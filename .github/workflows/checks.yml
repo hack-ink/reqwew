@@ -1,12 +1,4 @@
 name: Checks
-on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
-  workflow_dispatch:
 
 env:
   CACHE_VERSION: 0
@@ -14,9 +6,16 @@ env:
   CARGO_REGISTRIES_CRATES_IO_PROTOCOL: sparse
   CARGO_TERM_COLOR: always
 
-  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
   RUST_BACKTRACE: full
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  merge_group:
 
 jobs:
   cargo-checks:
@@ -59,4 +58,4 @@ jobs:
         with:
           repo: hack-ink/reqwew
           workflow_id: ${{ github.run_id }}
-          access_token: ${{ secrets.GITHUB_TOKEN }}
+          access_token: ${{ github.token }}

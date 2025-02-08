@@ -70,9 +70,6 @@ impl Http for Client {
 		&self,
 		request: Self::Request,
 	) -> impl Send + Future<Output = Result<Self::Response>> {
-		#[cfg(feature = "extra-tracing")]
-		tracing::info!("{:?} {}", request.method(), request.url());
-
 		async move { Ok(self.execute(request).await?.bytes().await?) }
 	}
 }
@@ -108,7 +105,7 @@ where
 			Ok(d) => Ok(d),
 			Err(e) => {
 				tracing::error!(
-					"failed to deserialize the following response into an object\n```\n{}\n```",
+					"failed to deserialize the following response into an object, {}",
 					String::from_utf8_lossy(s)
 				);
 
