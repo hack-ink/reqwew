@@ -7,10 +7,9 @@ pub type Result<T> = std::result::Result<T, Error>;
 #[allow(missing_docs)]
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
+	#[cfg(feature = "reqwest")]
 	#[error(transparent)]
 	Reqwest(#[from] reqwest::Error),
-	#[error(transparent)]
-	SerdeJson(#[from] serde_json::Error),
 
 	#[error("[reqwew] non-retriable request; this typically occurs when attempting to retry a stream body request")]
 	NonRetriableRequest,

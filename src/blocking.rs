@@ -3,7 +3,7 @@
 // std
 use std::thread;
 // crates.io
-#[cfg(feature = "reqwest")] use reqwest::blocking::{Client, Request};
+#[cfg(feature = "reqwest")] use reqwest::blocking::{Client, Request, Response};
 // self
 use crate::*;
 
@@ -45,13 +45,10 @@ where
 #[cfg(feature = "reqwest")]
 impl Http for Client {
 	type Request = Request;
-	type Response = Bytes;
+	type Response = Response;
 
 	fn request(&self, request: Self::Request) -> Result<Self::Response> {
-		#[cfg(feature = "extra-tracing")]
-		tracing::info!("{:?} {}", request.method(), request.url());
-
-		Ok(self.execute(request)?.bytes()?)
+		Ok(self.execute(request)?)
 	}
 }
 

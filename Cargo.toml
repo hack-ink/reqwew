@@ -2,14 +2,14 @@
 authors     = ["Xavier Lau <x@acg.box>"]
 categories  = ["web-programming::http-client"]
 description = "Reqwest effortless wrapper."
-edition     = "2021"
+edition     = "2024"
 homepage    = "https://hack.ink/reqwew"
 keywords    = ["client", "http", "request", "reqwest"]
 license     = "GPL-3.0"
 name        = "reqwew"
 readme      = "README.md"
 repository  = "https://github.com/hack-ink/reqwew"
-version     = "0.6.2"
+version     = "0.7.0"
 
 [profile.ci-dev]
 incremental = false
@@ -47,15 +47,13 @@ zstd                    = ["reqwest?/zstd"]
 
 [dependencies]
 # crates.io
-bytes      = { version = "1.10" }
-reqwest    = { version = "0.12", optional = true, default-features = false }
-serde      = { version = "1.0" }
-serde_json = { version = "1.0" }
-thiserror  = { version = "2.0" }
-tokio      = { version = "1.44" }
-tracing    = { version = "0.1" }
+reqwest   = { version = "0.12", optional = true, default-features = false }
+thiserror = { version = "2.0" }
+tokio     = { version = "1.44", features = ["time"] }
+tracing   = { version = "0.1" }
 
 [dev-dependencies]
 # crates.io
-reqwest = { version = "0.12", features = ["blocking"] }
-tokio   = { version = "1.44", features = ["macros"] }
+reqwest    = { version = "0.12", features = ["blocking"] }
+serde_json = { version = "1.0" }
+tokio      = { version = "1.44", features = ["macros"] }

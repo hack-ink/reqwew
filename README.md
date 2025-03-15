@@ -1,7 +1,8 @@
 <div align="center">
 
 # reqwew
-### HTTP client effortless wrapper.
+
+### HTTP client effortless wrapper
 
 [![License](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Checks](https://github.com/hack-ink/reqwew/actions/workflows/checks.yml/badge.svg?branch=main)](https://github.com/hack-ink/reqwew/actions/workflows/checks.yml)
@@ -16,7 +17,9 @@ Now it has evolved into a more generic solution, allowing you to implement the `
 </div>
 
 ## Usage
+
 ### Async
+
 ```rs
 // std
 use std::sync::LazyLock;
@@ -31,32 +34,43 @@ use serde_json::Value;
 pub static CLIENT: LazyLock<Client> = reqwew::lazy(Client::default);
 
 // Async.
-let resp = CLIENT
-	.request_with_retries(
-		CLIENT.request(Method::GET, "https://httpbin.org/get").build().unwrap(),
-		3,
-		50,
-	)
-	.await
-	.unwrap();
+let req = || async {
+	CLIENT
+		.request_with_retries(
+			CLIENT.request(Method::GET, "https://httpbin.org/get").build().unwrap(),
+			3,
+			50,
+		)
+		.await
+		.unwrap()
+};
 
-assert!(resp.clone().text().contains("httpbin.org"));
-assert_eq!(resp.json::<Value>().unwrap()["headers"]["Host"].as_str().unwrap(), "httpbin.org");
+assert!(req().await.text().await.unwrap().contains("httpbin.org"));
+assert_eq!(
+	req().await.json::<Value>().await.unwrap()["headers"]["Host"].as_str().unwrap(),
+	"httpbin.org"
+);
 
-let resp = CLIENT
-	.request_with_retries(
-		CLIENT.request(Method::POST, "https://httpbin.org/post").body("hello").build().unwrap(),
-		3,
-		50,
-	)
-	.await
-	.unwrap();
+let req = || async {
+	CLIENT
+		.request_with_retries(
+			CLIENT.request(Method::POST, "https://httpbin.org/post").body("hello").build().unwrap(),
+			3,
+			50,
+		)
+		.await
+		.unwrap()
+};
 
-assert!(resp.clone().text().contains("https://httpbin.org/post"));
-assert_eq!(resp.json::<Value>().unwrap()["url"].as_str().unwrap(), "https://httpbin.org/post");
+assert!(req().await.text().await.unwrap().contains("https://httpbin.org/post"));
+assert_eq!(
+	req().await.json::<Value>().await.unwrap()["url"].as_str().unwrap(),
+	"https://httpbin.org/post"
+);
 ```
 
 ### Blocking
+
 ```rs
 // std
 use std::sync::LazyLock;
@@ -72,29 +86,33 @@ use serde_json::Value;
 pub static BLOCKING_CLIENT: LazyLock<BlockingClient> = reqwew::lazy(BlockingClient::default);
 
 // Blocking.
-let resp = BLOCKING_CLIENT
-	.request_with_retries(
-		BLOCKING_CLIENT.request(Method::GET, "https://httpbin.org/get").build().unwrap(),
-		3,
-		50,
-	)
-	.unwrap();
+let req = || {
+	BLOCKING_CLIENT
+		.request_with_retries(
+			BLOCKING_CLIENT.request(Method::GET, "https://httpbin.org/get").build().unwrap(),
+			3,
+			50,
+		)
+		.unwrap()
+};
 
-assert!(resp.clone().text().contains("httpbin.org"));
-assert_eq!(resp.json::<Value>().unwrap()["headers"]["Host"].as_str().unwrap(), "httpbin.org");
+assert!(req().text().unwrap().contains("httpbin.org"));
+assert_eq!(req().json::<Value>().unwrap()["headers"]["Host"].as_str().unwrap(), "httpbin.org");
 
-let resp = BLOCKING_CLIENT
-	.request_with_retries(
-		BLOCKING_CLIENT
-			.request(Method::POST, "https://httpbin.org/post")
-			.body("hello")
-			.build()
-			.unwrap(),
-		3,
-		50,
-	)
-	.unwrap();
+let req = || {
+	BLOCKING_CLIENT
+		.request_with_retries(
+			BLOCKING_CLIENT
+				.request(Method::POST, "https://httpbin.org/post")
+				.body("hello")
+				.build()
+				.unwrap(),
+			3,
+			50,
+		)
+		.unwrap()
+};
 
-assert!(resp.clone().text().contains("https://httpbin.org/post"));
-assert_eq!(resp.json::<Value>().unwrap()["url"].as_str().unwrap(), "https://httpbin.org/post");
+assert!(req().text().unwrap().contains("https://httpbin.org/post"));
+assert_eq!(req().json::<Value>().unwrap()["url"].as_str().unwrap(), "https://httpbin.org/post");
 ```

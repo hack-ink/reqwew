@@ -14,9 +14,7 @@ use error::*;
 // std
 use std::{future::Future, sync::LazyLock, time::Duration};
 // crates.io
-use bytes::Bytes;
-#[cfg(feature = "reqwest")] use reqwest::{Client, Request};
-use serde::de::DeserializeOwned;
+#[cfg(feature = "reqwest")] use reqwest::{Client, Request, Response};
 use tokio::time;
 
 /// HTTP client functionality.
@@ -64,13 +62,13 @@ where
 #[cfg(feature = "reqwest")]
 impl Http for Client {
 	type Request = Request;
-	type Response = Bytes;
+	type Response = Response;
 
 	fn request(
 		&self,
 		request: Self::Request,
 	) -> impl Send + Future<Output = Result<Self::Response>> {
-		async move { Ok(self.execute(request).await?.bytes().await?) }
+		async move { Ok(self.execute(request).await?) }
 	}
 }
 
@@ -89,38 +87,6 @@ impl TryClone for Request {
 	}
 }
 
-/// HTTP response.
-pub trait Response
-where
-	Self: AsRef<[u8]>,
-{
-	/// Deserialize the response into a JSON object.
-	fn json<D>(&self) -> Result<D>
-	where
-		D: DeserializeOwned,
-	{
-		let s = self.as_ref();
-
-		match serde_json::from_slice(s) {
-			Ok(d) => Ok(d),
-			Err(e) => {
-				tracing::error!(
-					"failed to deserialize the following response into an object, {}",
-					String::from_utf8_lossy(s)
-				);
-
-				Err(e)?
-			},
-		}
-	}
-
-	/// Convert the response into a string.
-	fn text(&self) -> String {
-		String::from_utf8_lossy(self.as_ref()).into()
-	}
-}
-impl<T> Response for T where T: AsRef<[u8]> {}
-
 /// Create a new lazy static client instance.
 ///
 /// This is useful to avoid allocating multiple new clients.
@@ -132,8 +98,8 @@ impl<T> Response for T where T: AsRef<[u8]> {}
 /// // crates.io
 /// use reqwew::reqwest::{blocking::Client as BlockingClient, Client};
 ///
-/// pub static CLIENT: LazyLock<Client> = reqwew::lazy(|| Client::default());
-/// pub static BLOCKING_CLIENT: LazyLock<BlockingClient> = reqwew::lazy(|| BlockingClient::default());
+/// pub static CLIENT: LazyLock<Client> = reqwew::lazy(Client::default);
+/// pub static BLOCKING_CLIENT: LazyLock<BlockingClient> = reqwew::lazy(BlockingClient::default);
 /// ```
 pub const fn lazy<F, C>(f: F) -> LazyLock<C, F>
 where
