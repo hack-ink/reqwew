@@ -11,7 +11,9 @@ pub enum Error {
 	#[error(transparent)]
 	Reqwest(#[from] reqwest::Error),
 
-	#[error("[reqwew] non-retriable request; this typically occurs when attempting to retry a stream body request")]
+	#[error(
+		"[reqwew] non-retriable request; this typically occurs when attempting to retry a stream body request"
+	)]
 	NonRetriableRequest,
 	#[error("[reqwew] max retries exceeded after {0} attempts")]
 	ExceededMaxRetries(u32),
